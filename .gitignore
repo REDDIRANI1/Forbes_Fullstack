@@ -5,6 +5,8 @@ commit-as-rrr.sh
 # Agent Instructions File
 agents.md
 AGENTS.md
+AGENT_TASKS.md
+IMPLEMENTATION_PLAN.md
 
 # Local/editor metadata
 .DS_Store
