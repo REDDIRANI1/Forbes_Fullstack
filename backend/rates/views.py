@@ -6,6 +6,7 @@ from django.http import JsonResponse
 from rest_framework import generics, pagination, permissions, response, views
 
 from rates.authentication import BearerTokenAuthentication
+from rates.cache import invalidate_latest_cache, latest_cache_key, normalize_rate_type
 from rates.ingestion import ingest_webhook_record
 from rates.models import RateRecord
 from rates.serializers import IngestSerializer, RateRecordSerializer
@@ -26,10 +27,10 @@ class LatestRatesView(views.APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        rate_type = request.query_params.get("type")
-        if rate_type is not None and not rate_type.strip():
-            return response.Response({"type": ["Must not be blank."]}, status=400)
-        key = f"rates:latest:type:{rate_type}" if rate_type else "rates:latest:all"
+        rate_type, errors = normalize_rate_type(request.query_params.get("type"))
+        if errors:
+            return response.Response({"type": errors}, status=400)
+        key = latest_cache_key(rate_type)
         cached = cache.get(key)
         if cached is not None:
             return response.Response(cached)
@@ -40,6 +41,19 @@ class LatestRatesView(views.APIView):
         payload = RateRecordSerializer(records, many=True).data
         cache.set(key, payload, timeout=60)
         return response.Response(payload)
+
+
+class RateOptionsView(views.APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        rows = (
+            RateRecord.objects.order_by("provider_name", "rate_type")
+            .values_list("provider_name", "rate_type")
+            .distinct()
+        )
+        combinations = [{"provider_name": provider, "rate_type": rate_type} for provider, rate_type in rows]
+        return response.Response({"combinations": combinations})
 
 
 class HistoryRatesView(generics.ListAPIView):
@@ -88,6 +102,6 @@ class IngestRatesView(views.APIView):
         batch, summary = ingest_webhook_record(serializer.validated_data)
         parsed = RateRecord.objects.filter(raw_record__batch=batch).order_by("-id").first()
         if summary.created and parsed:
-            cache.delete_many(["rates:latest:all", f"rates:latest:type:{parsed.rate_type}"])
+            invalidate_latest_cache([parsed.rate_type])
         status_code = 201 if summary.created else 200
         return response.Response({"batch_id": str(batch.id), "created": summary.created, "skipped": summary.skipped, "rate": RateRecordSerializer(parsed).data if parsed else None}, status=status_code)

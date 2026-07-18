@@ -1,4 +1,4 @@
-.PHONY: up seed test logs
+.PHONY: up seed test lint logs
 
 up:
 	docker-compose up --build
@@ -8,6 +8,10 @@ seed:
 
 test:
 	docker-compose exec api pytest
+	docker-compose exec web npm test
+
+lint:
+	docker-compose exec web npm run lint
 
 logs:
 	docker-compose logs -f

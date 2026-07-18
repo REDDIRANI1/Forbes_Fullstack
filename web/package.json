@@ -5,7 +5,8 @@
     "dev": "next dev -H 0.0.0.0",
     "build": "next build",
     "start": "next start -H 0.0.0.0",
-    "lint": "eslint ."
+    "lint": "eslint . --max-warnings=0",
+    "test": "node --experimental-strip-types --test app/**/*.test.ts"
   },
   "dependencies": {
     "next": "16.2.10",

@@ -16,10 +16,13 @@ The dashboard is at `http://localhost:3000`; the API is at `http://localhost:800
 ```sh
 make seed
 make test
+make lint
 make logs
 ```
 
 `make seed` runs `python manage.py seed_data` against `forbes_docs/rates_seed.parquet`. Seeding is deliberately manual: importing about one million rows would prevent the dashboard from meeting its two-minute startup target.
+
+`make test` runs backend pytest in the API container and the frontend Node test suite in the web container. `make lint` runs `npm run lint` non-interactively in the web container.
 
 ## Configuration
 
@@ -37,11 +40,12 @@ make logs
 
 ```sh
 curl http://localhost:8000/rates/latest
+curl http://localhost:8000/rates/options
 curl 'http://localhost:8000/rates/history?provider=hsbc&type=savings_1yr_fixed&page_size=50'
 curl -X POST http://localhost:8000/rates/ingest -H 'Authorization: Bearer local-demo-ingest-token' -H 'Content-Type: application/json' -d '{"provider":"Example","rate_type":"fixed","rate_value":"4.0000","effective_date":"2025-01-01","ingestion_ts":"2025-01-01T00:00:00Z"}'
 ```
 
-Celery Beat invokes the same seed path hourly. A Redis lock prevents overlapping runs. Raw source rows are retained for parsing failures and normalized facts are idempotent. See `schema.md` and `DECISIONS.md` for query and tradeoff details.
+Celery Beat invokes the same seed path hourly. An owned Redis lease with token compare-and-delete prevents overlapping runs and lock theft on late release. Raw source rows are retained for parsing failures and normalized facts are idempotent. The dashboard auto-refreshes latest rates and selected history every 60 seconds. See `schema.md` and `DECISIONS.md` for query and tradeoff details.
 
 ## Known Limits
 

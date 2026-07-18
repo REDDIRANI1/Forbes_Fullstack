@@ -5,6 +5,7 @@ import pytest
 from django.core.cache import cache
 from rest_framework.test import APIClient
 
+from rates.cache import latest_cache_key, normalize_rate_type
 from rates.models import IngestionBatch, RateRecord, RawRateRecord
 
 
@@ -39,6 +40,36 @@ def test_history_validates_and_paginates():
     assert response.status_code == 200
     assert response.data["count"] == 2
     assert len(response.data["results"]) == 2
+
+
+@pytest.mark.django_db
+def test_latest_rejects_invalid_type_cache_keys():
+    cache.clear()
+    response = APIClient().get("/rates/latest?type=" + ("x" * 65))
+    assert response.status_code == 400
+    assert "type" in response.data
+    bad = APIClient().get("/rates/latest?type=bad;drop")
+    assert bad.status_code == 400
+    assert cache.get(latest_cache_key("x" * 65)) is None
+
+
+def test_normalize_rate_type_bounds_cache_keys():
+    assert normalize_rate_type(None) == (None, [])
+    assert normalize_rate_type("  savings_1yr_fixed  ") == ("savings_1yr_fixed", [])
+    assert normalize_rate_type("")[1]
+    assert normalize_rate_type("a" * 65)[1]
+    assert normalize_rate_type("bad$key")[1]
+
+
+@pytest.mark.django_db
+def test_options_lists_valid_provider_type_combinations():
+    make_rate("alpha", "fixed", "4.0000", date(2025, 1, 1), datetime(2025, 1, 1, tzinfo=timezone.utc))
+    make_rate("alpha", "variable", "5.0000", date(2025, 1, 2), datetime(2025, 1, 2, tzinfo=timezone.utc))
+    make_rate("bravo", "fixed", "3.0000", date(2025, 1, 1), datetime(2025, 1, 1, tzinfo=timezone.utc))
+    response = APIClient().get("/rates/options")
+    assert response.status_code == 200
+    combinations = {(item["provider_name"], item["rate_type"]) for item in response.data["combinations"]}
+    assert combinations == {("alpha", "fixed"), ("alpha", "variable"), ("bravo", "fixed")}
 
 
 @pytest.mark.django_db

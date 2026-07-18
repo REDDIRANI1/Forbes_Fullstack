@@ -170,6 +170,17 @@ polyline {
   vector-effect: non-scaling-stroke;
 }
 
+circle {
+  fill: #c96d42;
+  stroke: #fbfaf5;
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.compact {
+  padding: 8px 0 0;
+}
+
 /* ── Responsive ─────────────────────────────────────── */
 
 @media (max-width: 600px) {

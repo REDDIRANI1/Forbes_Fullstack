@@ -6,6 +6,9 @@ import pytest
 import requests
 from django.core.management import call_command
 
+from django.core.cache import cache
+
+from rates.cache import latest_cache_key
 from rates.ingestion import HttpRateSource, HttpSourceError, parse_rate
 from rates.models import RawRateRecord, RateRecord
 
@@ -47,6 +50,16 @@ def test_seed_command_is_idempotent_and_keeps_failed_raw_rows(tiny_parquet):
     assert RateRecord.objects.count() == 2
     assert RawRateRecord.objects.count() == 3
     assert RawRateRecord.objects.filter(parse_status="failed").count() == 1
+
+
+@pytest.mark.django_db
+def test_seed_command_invalidates_latest_cache(tiny_parquet):
+    cache.clear()
+    cache.set(latest_cache_key(), [{"stale": True}], timeout=60)
+    cache.set(latest_cache_key("savings_1yr_fixed"), [{"stale": True}], timeout=60)
+    call_command("seed_data", path=tiny_parquet, batch_size=2)
+    assert cache.get(latest_cache_key()) is None
+    assert cache.get(latest_cache_key("savings_1yr_fixed")) is None
 
 
 def test_parser_normalizes_provider_and_rejects_invalid_rate(valid_payload):

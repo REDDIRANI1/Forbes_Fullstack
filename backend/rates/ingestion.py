@@ -12,6 +12,7 @@ import requests
 from django.db import transaction
 from django.utils import timezone as django_timezone
 
+from rates.cache import invalidate_latest_cache
 from rates.models import IngestionBatch, RateRecord, RawRateRecord
 
 
@@ -248,6 +249,9 @@ def ingest_parquet(path: str | Path, batch_size: int = 5_000) -> tuple[Ingestion
             "finished_at",
         ]
     )
+    if total.created:
+        affected_types = RateRecord.objects.filter(raw_record__batch=batch).values_list("rate_type", flat=True).distinct()
+        invalidate_latest_cache(affected_types)
     return batch, total
 
 
