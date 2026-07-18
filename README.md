@@ -46,3 +46,7 @@ Celery Beat invokes the same seed path hourly. A Redis lock prevents overlapping
 ## Known Limits
 
 The assessment source is static rather than a live provider feed. Structured JSON logging and production deployment are deferred; the API and worker currently use standard application logging.
+
+## Recording Checklist
+
+Record the clean Compose startup, dashboard at `localhost:3000`, a manual seed and repeat seed, API tests, authenticated ingest validation, and the repository documentation. Remote repository creation, reviewer access, push, and submission are intentionally separate, authorization-gated steps.

@@ -35,4 +35,4 @@ This record contains only decisions that have been made and agreed for the curre
 
 ## Future improvement
 
-- **No specific future improvement has been selected yet.** Before submission, choose one concrete improvement that reflects the implemented system and explain why it would be valuable. It must not be a generic claim such as “add more tests.”
+- **Provider registry and durable run leases:** with more time, replace case-folded display labels with a provider registry of official names and aliases, and replace the single Redis lock with durable job leases. This would improve presentation accuracy and recovery when a worker fails mid-run.
