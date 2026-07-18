@@ -52,13 +52,13 @@ Finish work in this order. Do not start a lower-priority item if a higher one is
 3. Add `docker-compose.yml` services for `api`, `db`, `redis`, `worker`, `beat`, and `web`.
 4. Add `.env.example` with non-secret placeholder values for database, Redis, Django secret key, debug setting, and ingest bearer token.
 5. Validate required environment variables during Django startup with human-readable errors.
-6. Add health checks for PostgreSQL, Redis, and the API. On a clean database, the API startup path must wait for PostgreSQL, apply Django migrations, and expose its health check only when ready; worker, Beat, and web must wait for the API to be healthy.
+6. Add health checks for PostgreSQL, Redis, and the API. On every startup, the API must wait for PostgreSQL and run Django migrations idempotently before serving requests; the API service is the only service responsible for migrations. Expose its health check only when PostgreSQL and Redis are usable, and make worker, Beat, and web wait for the API to be healthy.
 7. Add a `Makefile` or `scripts/` commands for startup, seed, tests, and logs.
 
 ### Done when
 
 - From a clean clone with an empty database volume, the exact `docker-compose up` command starts Django, PostgreSQL, Redis, Celery worker, Celery Beat, and Next.js.
-- The API applies migrations automatically, then passes its health check after connecting to PostgreSQL and Redis.
+- The API applies all pending migrations automatically and idempotently on every startup, then passes its health check after connecting to PostgreSQL and Redis.
 - Worker, Beat, and dashboard wait for the functional API; the dashboard can make real API requests within two minutes, even before the manual seed runs.
 - Missing required configuration fails immediately with a helpful message.
 
@@ -111,14 +111,15 @@ Treat this as provisional until seed-data profiling confirms it correctly repres
 
 ### Required indexes
 
+- `(provider_name, effective_date DESC, ingested_at DESC, id DESC)` — unfiltered latest rate per provider.
+- `(rate_type, provider_name, effective_date DESC, ingested_at DESC, id DESC)` — type-filtered latest rate per provider.
 - `(provider_name, rate_type, effective_date DESC)` — history and 30-day change.
-- `(rate_type, provider_name, effective_date DESC)` — filtered latest-rate queries.
 - `(ingested_at)` — 24-hour ingestion-window queries.
 - `(batch_id, parse_status)` on raw records — replay/diagnostic queries.
 
 ### Query-semantics decisions
 
-- **Latest rate:** an unfiltered latest-rates response returns one latest record for each `(provider_name, rate_type)` pair. With `?type=<rate_type>`, it returns one latest record per provider for that type. “Latest” is ordered by `effective_date`, then `ingested_at`, then record ID, all descending.
+- **Latest rate:** an unfiltered latest-rates response returns one latest record per provider across all rate types. With `?type=<rate_type>`, it first filters by type and then returns one latest record per provider. “Latest” is ordered by `effective_date`, then `ingested_at`, then record ID, all descending; the returned record includes its rate type.
 - **30-day change:** for one provider + rate type, compare the latest effective rate with the most recent rate whose effective date is on or before 30 calendar days before that latest date. Return `null` when no baseline record exists. The `(provider_name, rate_type, effective_date DESC)` index supports this lookup.
 
 ### Done when
@@ -184,7 +185,7 @@ This meets the spirit of the brief without pretending the provided Parquet file 
 
 - Public endpoint.
 - Optional `?type=` filter.
-- Without `?type=`, return one latest record for each provider + rate-type pair; with `?type=`, return one latest record per provider for that type.
+- Without `?type=`, return one latest record per provider across all rate types; with `?type=`, filter first and return one latest record per provider for that type.
 - Select the latest record by `effective_date`, then `ingested_at`, then record ID, all descending.
 - Use a bounded cache key, e.g. `rates:latest:all` or `rates:latest:type:<rate_type>`.
 - Invalidate only affected latest-rate cache keys after successful ingestion.
