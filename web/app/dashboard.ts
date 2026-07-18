@@ -3,6 +3,14 @@ export type RateOption = { provider_name: string; rate_type: string };
 export type SortField = "rate_value" | "effective_date";
 export const DASHBOARD_REFRESH_MS = 60_000;
 
+/** Seed pairs known to have multi-point 30-day windows; first match in options wins. */
+export const PREFERRED_CHART_SELECTIONS: ReadonlyArray<{ provider: string; rateType: string }> = [
+  { provider: "bank of america", rateType: "savings_easy_access" },
+  { provider: "wells fargo", rateType: "savings_easy_access" },
+  { provider: "chase", rateType: "savings_easy_access" },
+  { provider: "citibank", rateType: "savings_easy_access" },
+];
+
 export function displayType(value: string) {
   return value.replaceAll("_", " ");
 }
@@ -19,8 +27,19 @@ export function isValidCombination(options: RateOption[], provider: string, rate
   return options.some((option) => option.provider_name === provider && option.rate_type === rateType);
 }
 
+export function preferredChartSelection(options: RateOption[]) {
+  for (const candidate of PREFERRED_CHART_SELECTIONS) {
+    if (isValidCombination(options, candidate.provider, candidate.rateType)) {
+      return { provider: candidate.provider, rateType: candidate.rateType };
+    }
+  }
+  const provider = uniqueProviders(options)[0] || "";
+  return { provider, rateType: typesForProvider(options, provider)[0] || "" };
+}
+
 export function nextValidSelection(options: RateOption[], provider: string, rateType: string) {
   if (isValidCombination(options, provider, rateType)) return { provider, rateType };
+  if (!provider && !rateType) return preferredChartSelection(options);
   const fallbackProvider = provider && typesForProvider(options, provider).length ? provider : uniqueProviders(options)[0] || "";
   return { provider: fallbackProvider, rateType: typesForProvider(options, fallbackProvider)[0] || "" };
 }
