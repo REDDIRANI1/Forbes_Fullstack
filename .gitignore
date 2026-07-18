@@ -22,3 +22,9 @@ web/.next/
 forbes_docs/*.pdf
 forbes_docs/*.docx
 !forbes_docs/rates_seed.parquet
+
+# Logs and runtime databases
+.playwright-cli/
+celerybeat-schedule
+celerybeat-schedule-shm
+celerybeat-schedule-wal
