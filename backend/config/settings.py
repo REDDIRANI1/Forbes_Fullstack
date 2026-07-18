@@ -66,3 +66,4 @@ REST_FRAMEWORK["DEFAULT_PAGINATION_CLASS"] = "rest_framework.pagination.PageNumb
 REST_FRAMEWORK["PAGE_SIZE"] = 50
 CELERY_BROKER_URL = REDIS_URL
 CELERY_RESULT_BACKEND = REDIS_URL
+CELERY_BEAT_SCHEDULE = {"seed-rates-hourly": {"task": "rates.tasks.scheduled_seed_data", "schedule": 3600.0}}
