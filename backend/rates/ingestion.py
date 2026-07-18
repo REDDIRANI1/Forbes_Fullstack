@@ -1,6 +1,7 @@
 import hashlib
 import json
 import math
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation
@@ -17,6 +18,12 @@ from rates.models import IngestionBatch, RateRecord, RawRateRecord
 
 
 class ParseError(ValueError):
+    pass
+
+
+class IngestionAbortedError(RuntimeError):
+    """Raised when the ingestion ownership callback signals that this worker
+    no longer holds the distributed lock and must stop immediately."""
     pass
 
 
@@ -203,7 +210,11 @@ def persist_records(
     return summary
 
 
-def ingest_parquet(path: str | Path, batch_size: int = 5_000) -> tuple[IngestionBatch, IngestionSummary]:
+def ingest_parquet(
+    path: str | Path,
+    batch_size: int = 5_000,
+    is_owner: "Callable[[], bool] | None" = None,
+) -> tuple[IngestionBatch, IngestionSummary]:
     path = Path(path)
     source_identifier = _file_digest(path)
     batch, _ = IngestionBatch.objects.get_or_create(
@@ -215,6 +226,10 @@ def ingest_parquet(path: str | Path, batch_size: int = 5_000) -> tuple[Ingestion
     try:
         parquet = pq.ParquetFile(path)
         for record_batch in parquet.iter_batches(batch_size=batch_size):
+            if is_owner is not None and not is_owner():
+                raise IngestionAbortedError(
+                    "Ingestion aborted: distributed lock ownership was lost before this batch."
+                )
             rows = record_batch.to_pylist()
             summary = persist_records(
                 batch,
