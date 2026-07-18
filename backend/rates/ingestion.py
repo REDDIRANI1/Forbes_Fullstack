@@ -70,6 +70,8 @@ class HttpRateSource:
 def json_safe(value: Any) -> Any:
     if isinstance(value, (date, datetime)):
         return value.isoformat()
+    if isinstance(value, Decimal):
+        return str(value)
     if isinstance(value, Mapping):
         return {str(key): json_safe(item) for key, item in value.items()}
     if isinstance(value, (list, tuple)):

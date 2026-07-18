@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal
 
 from django.core.validators import MinValueValidator
 from django.db import models
@@ -57,7 +58,7 @@ class RateRecord(models.Model):
     raw_record = models.OneToOneField(RawRateRecord, on_delete=models.PROTECT, related_name="rate_record")
     provider_name = models.CharField(max_length=128)
     rate_type = models.CharField(max_length=64)
-    rate_value = models.DecimalField(max_digits=9, decimal_places=4, validators=[MinValueValidator(0)])
+    rate_value = models.DecimalField(max_digits=9, decimal_places=4, validators=[MinValueValidator(Decimal("0"))])
     effective_date = models.DateField()
     ingested_at = models.DateTimeField()
 
