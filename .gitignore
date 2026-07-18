@@ -82,3 +82,6 @@ IMPLEMENTATION_PLAN.md
 forbes_docs/*.pdf
 forbes_docs/*.docx
 !forbes_docs/rates_seed.parquet
+
+# Celery beat DB may live under backend/ when run from that CWD
+backend/celerybeat-schedule*
