@@ -41,11 +41,11 @@ make logs
 ```sh
 curl http://localhost:8000/rates/latest
 curl http://localhost:8000/rates/options
-curl 'http://localhost:8000/rates/history?provider=hsbc&type=savings_1yr_fixed&page_size=50'
+curl 'http://localhost:8000/rates/history?provider=bank%20of%20america&type=savings_easy_access&page_size=50'
 curl -X POST http://localhost:8000/rates/ingest -H 'Authorization: Bearer local-demo-ingest-token' -H 'Content-Type: application/json' -d '{"provider":"Example","rate_type":"fixed","rate_value":"4.0000","effective_date":"2025-01-01","ingestion_ts":"2025-01-01T00:00:00Z"}'
 ```
 
-Celery Beat invokes the same seed path hourly. An owned Redis lease with token compare-and-delete prevents overlapping runs and lock theft on late release. Raw source rows are retained for parsing failures and normalized facts are idempotent. The dashboard auto-refreshes latest rates and selected history every 60 seconds. See `schema.md` and `DECISIONS.md` for query and tradeoff details.
+Celery Beat invokes the same seed path hourly. An owned Redis lease with token compare-and-delete prevents overlapping runs and lock theft on late release. Raw source rows are retained for parsing failures and normalized facts are idempotent. The dashboard auto-refreshes latest rates and selected history every 60 seconds; on first load it prefers a dense 30-day provider/type pair when available. See `schema.md` and `DECISIONS.md` for query and tradeoff details.
 
 ## Known Limits
 
@@ -53,4 +53,4 @@ The assessment source is static rather than a live provider feed. Structured JSO
 
 ## Recording Checklist
 
-Record the clean Compose startup, dashboard at `localhost:3000`, a manual seed and repeat seed, API tests, authenticated ingest validation, and the repository documentation. Remote repository creation, reviewer access, push, and submission are intentionally separate, authorization-gated steps.
+Record the clean Compose startup, dashboard at `localhost:3000`, a manual seed and repeat seed, API tests, authenticated ingest validation, and the repository documentation. Grant reviewer collaborator access and attach the video link when submitting.
