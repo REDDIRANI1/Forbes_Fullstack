@@ -5,3 +5,12 @@ commit-as-rrr.sh
 # Agent Instructions File
 agents.md
 AGENTS.md
+
+# Local/editor metadata
+.DS_Store
+
+# Assignment reference documents are not submission deliverables.
+# Keep the supplied seed data available because seed_data must ingest it.
+forbes_docs/*.pdf
+forbes_docs/*.docx
+!forbes_docs/rates_seed.parquet
