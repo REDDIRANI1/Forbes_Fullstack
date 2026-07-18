@@ -1,0 +1,20 @@
+Senior Full-Stack Developer - Take-home Assessment
+Marketplace · Data Research Engineering Team
+Submit a private GitHub repo with collaborator access granted to us, plus a link to your video recording (Loom, Google Drive, or similar).
+Submission requirement
+Your submission must include a screen recording showing the full running application locally along with your Git Repo. Your repo must start cleanly with docker-compose up and a reviewer must be able to access the dashboard at localhost:3000 within 2 minutes of cloning. Deployment to a live URL is optional but appreciated.
+Your README.md must cover:
+	•	Prerequisites
+	•	How to run locally
+	•	How to run tests
+	•	A brief rationale for any non-obvious architectural choices
+Partial submissions are accepted - note clearly in the README what you didn't complete and how you would have approached it. Incomplete required scope with strong DECISIONS.md reasoning scores higher than complete scope with no documentation of thinking
+DECISIONS.md - required deliverable
+Include a DECISIONS.md in the root of your repo. This is not a README - it is a short written record of your engineering thinking. Cover these four areas:
+	•	Assumptions you made. What did you assume about the data, the use case, or the environment that shaped your design? Anything that a production engineer would want to verify before deploying.
+	•	Idempotency strategy. The seed file contains multiple issues. Explain exactly how your ingestion worker handles DB with multiple data related issues
+	•	One tradeoff you made consciously. A design decision where you picked option A over option B and can articulate why, given the constraints of a 48-hour window.
+	•	One thing you would change with more time. 
+	•	Be specific - not 'I would add more tests' but 'I would replace the polling refresh with a WebSocket because...'.
+Rate-Tracker Assessment Brief (Attached)
+

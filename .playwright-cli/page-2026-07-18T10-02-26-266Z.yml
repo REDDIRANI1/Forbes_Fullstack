@@ -1,0 +1,28 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - paragraph [ref=e4]: Forbes Advisor assessment
+      - heading "Rate tracker" [level=1] [ref=e5]
+      - paragraph [ref=e6]: Live provider comparison, refreshed every minute.
+    - generic [ref=e7]:
+      - generic [ref=e8]:
+        - heading "Latest rate by provider" [level=2] [ref=e9]
+        - generic [ref=e10]:
+          - button "Sort by value ▲" [ref=e11] [cursor=pointer]
+          - button "Sort by update" [ref=e12] [cursor=pointer]
+      - paragraph [ref=e13]: Loading current rates
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - paragraph [ref=e16]: 30-day movement
+        - heading "Compare a provider and rate type" [level=2] [ref=e17]
+      - generic [ref=e18]:
+        - generic [ref=e19]:
+          - text: Provider
+          - combobox "Provider" [ref=e20] [cursor=pointer]
+        - generic [ref=e21]:
+          - text: Rate type
+          - combobox "Rate type" [ref=e22] [cursor=pointer]
+      - paragraph [ref=e23]: Choose a provider and rate type to view history
+  - button "Open Next.js Dev Tools" [ref=e29] [cursor=pointer]:
+    - img [ref=e30]
+  - alert [ref=e33]

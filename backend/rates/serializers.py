@@ -18,6 +18,8 @@ class IngestSerializer(serializers.Serializer):
     ingestion_ts = serializers.DateTimeField()
 
     def to_internal_value(self, data):
+        if not isinstance(data, dict):
+            raise serializers.ValidationError({"non_field_errors": ["Invalid data. Expected a dictionary."]})
         unknown = set(data) - set(self.fields)
         if unknown:
             raise serializers.ValidationError({key: ["Unknown field."] for key in sorted(unknown)})

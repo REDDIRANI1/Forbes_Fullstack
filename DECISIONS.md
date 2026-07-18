@@ -1,39 +1,107 @@
 # Decisions
 
-This record contains only decisions that have been made and agreed for the current implementation. It must be updated with the code that implements each decision; proposed ideas are not decisions.
+Design and implementation choices for this submission, with short rationale.  
+Only decisions reflected in the running code are listed here.
 
 ## Scope and delivery
 
-- **Dashboard is delivery-critical.** Although the detailed technical brief labels the Next.js frontend as optional bonus work, the submission brief requires a reviewer to access a dashboard at `localhost:3000` within two minutes of cloning. Therefore, the dashboard will be implemented and connected to the real API for a safe submission.
-- **Live deployment is optional.** We will consider deploying only after the required local Docker workflow, tests, documentation, and dashboard are complete. The submission must not depend on a live URL.
-- **Use standard Docker Compose in the repository.** The project must use ordinary Docker/Docker Compose configuration that works on any compatible Docker runtime.
-- **Keep version control local for now.** Create local commits only when the relevant work is verified and the user authorizes a commit, using `./commit-as-rrr.sh`. Do not create a remote repository, push, or grant reviewer access until the user explicitly directs it.
+- **Dashboard is required for submission.**  
+  The technical brief marks the Next.js frontend as optional, but the submission brief requires a reviewer to open a dashboard at `localhost:3000` within two minutes of cloning. The dashboard is therefore implemented and wired to the real API.
 
-## Data acquisition and ingestion
+- **Local Docker Compose is the primary demo path.**  
+  Standard Docker Compose is used so any compatible Docker runtime can run the stack. Live cloud deployment is optional and is not required to review the work.
 
-- **The supplied Snappy Parquet file is the primary assessment data source.** The required command will be `python manage.py seed_data`.
-- **Use a small HTTP source adapter only for the explicit HTTP requirement.** The brief also requires handling HTTP timeouts/errors/partial responses and a pytest test that mocks an HTTP call. The implementation will demonstrate this with a bounded adapter and mocked test, while Parquet remains the real source. It will not invent or depend on an external live rate-data source.
-- **Initial seeding is manual.** A reviewer/developer will run `make seed` (or the documented equivalent `python manage.py seed_data`) after starting Docker Compose. This avoids placing a ~1,000,000-row import on the critical startup path and helps keep the dashboard reachable within the two-minute requirement. README will state the command; this file records why it is manual.
-- **Seed-file profile and normalization:** a read-only PyArrow record-batch scan found 1,005,000 rows across 21 row groups (20 x 50,000 plus 5,000). The columns are `provider`, `rate_type`, `rate_value`, `effective_date`, `ingestion_ts`, `source_url`, `raw_response_id`, and `currency`. There are 200 null rates and 15 non-positive rates; no required provider/type/date/timestamp is null. Providers include `HSBC`, `Hsbc`, and `hsbc`; currencies include `USD`, `usd`, and `US Dollar`. The last 5,000 rows contain 46 case-folded provider/type/value/date keys also seen in prior row groups. Raw payloads retain every supplied variant; normalized provider names are trimmed and case-folded, and rate types are trimmed.
-- **Rate value and time assumptions:** valid source values range from 3.5 to 97.3949 and use at most four decimal places, so normalized records use `Decimal(9,4)` and reject non-positive values. Parquet `ingestion_ts` is timezone-naive, so it is treated as UTC before Django persistence; `effective_date` remains a calendar date.
-- **Duplicate definition:** one normalized fact is `(case-folded provider_name, rate_type, effective_date, rate_value)`. The database unique constraint rejects a retry of that fact while preserving a genuine same-day change with a different value. Every source row is retained separately as raw JSON and has a unique `(batch, source_row_number)` position for replay.
-- **Ingestion idempotency and failures:** `seed_data` hashes the Parquet bytes in 1 MiB chunks to obtain a stable batch identity. It reads at most 5,000 rows at a time, uses one transaction per record batch, inserts raw JSON rows with conflict-safe `(batch, source_row_number)` handling, and then bulk-inserts normalized facts with the database unique constraint. A rerun reuses the batch, retains its original raw rows, and reports normalized rows as skipped rather than duplicating them. Parsing failures, including the profiled null/non-positive rate values, are persisted as `failed` raw records with an error message; an unrecoverable source or database exception marks the batch failed and surfaces a command error.
-- **Observed full-file result:** the first real seed run persisted 1,005,000 raw rows, created 999,096 normalized records, skipped 5,689 duplicate normalized facts, and recorded 215 parse failures. The immediate repeat created zero records, skipped 1,004,785 valid rows, and retained the same 215 failed raw rows.
-- **HTTP adapter behavior:** the assessment's HTTP requirement is met by a small `HttpRateSource`, separate from the actual Parquet source. It uses an explicit timeout, turns request/status/JSON failures into a visible source error, and accepts a response's available `records` list even when it is marked partial so the same parser can preserve malformed rows for replay.
-- **API and cache:** `GET /rates/latest` caches the JSON response for 60 seconds under `rates:latest:all` or `rates:latest:type:<type>`. The optional `type` query is normalized and validated before it becomes a cache key: blank values are rejected, and only 1-64 character values matching letters, numbers, spaces, underscores, or hyphens are accepted so Redis keys stay bounded. The unfiltered query selects one record per case-folded provider across all types; a type filter is applied before selection. Both order by effective date, source ingestion timestamp, then ID descending. A successful webhook insert deletes the all-types key and that record's type key. Successful Parquet ingestion that creates normalized rows invalidates the all-types key plus every rate type present in the batch. History uses a default 50-row page size and requires provider/type. `GET /rates/options` returns distinct provider/type combinations so the dashboard selectors are not limited to the one-latest-row-per-provider table.
-- **Scheduler and tradeoff:** Celery Beat runs the shared seed task hourly under Compose. Ownership uses a Redis `SET NX` lock with a UUID token and a 90-minute lease. A background renewer extends the lease every 5 minutes while the task still owns the key. Release uses a compare-and-delete Lua script so a late finish cannot delete another run's lock. If the lock is already held, the task returns `skipped_overlap`. The 48-hour tradeoff is this owned lease rather than durable job orchestration; with more time, use a provider registry for canonical display names and a durable run/lease protocol for stronger worker-failure recovery.
-- **30-day change definition:** for a provider + rate type, compare the latest effective rate with the most recent record whose effective date is on or before 30 calendar days before the latest effective date. Return `null` when that baseline does not exist.
+- **Initial seed is manual (`make seed`).**  
+  Importing ~1,000,000 rows on container start would block the two-minute dashboard target. Reviewers start Compose first, then run `make seed` (or `python manage.py seed_data`) when ready. The README documents the command.
+
+## Data source and ingestion
+
+- **Parquet is the primary data source.**  
+  The supplied Snappy Parquet file is loaded via `python manage.py seed_data`.
+
+- **HTTP adapter exists only to satisfy the HTTP requirement.**  
+  A small `HttpRateSource` demonstrates timeouts, error handling, partial responses, and a mocked pytest path. It is not backed by a live external rate feed; Parquet remains the real source.
+
+- **Source profile (from a read-only scan).**  
+  - 1,005,000 rows in 21 row groups (20 × 50,000 + 5,000)  
+  - Columns: `provider`, `rate_type`, `rate_value`, `effective_date`, `ingestion_ts`, `source_url`, `raw_response_id`, `currency`  
+  - 200 null rates, 15 non-positive rates; required provider/type/date/timestamp fields are never null  
+  - Provider casing varies (`HSBC` / `Hsbc` / `hsbc`); currency varies (`USD` / `usd` / `US Dollar`)  
+  - Last 5,000 rows include 46 case-folded keys already seen earlier in the file  
+
+- **Normalization rules.**  
+  - Provider names: trimmed and case-folded  
+  - Rate types: trimmed  
+  - Rate values: `Decimal(9,4)`; non-positive values rejected (observed range 3.5–97.3949, ≤4 decimal places)  
+  - `ingestion_ts`: timezone-naive in Parquet → treated as UTC  
+  - `effective_date`: stored as a calendar date  
+  - Raw payloads keep original variants for audit/replay  
+
+- **Duplicate definition.**  
+  A normalized fact is unique on  
+  `(case-folded provider_name, rate_type, effective_date, rate_value)`.  
+  Retries of the same fact are rejected; a genuine same-day change with a different value is kept. Every source row is also stored as raw JSON with a unique `(batch, source_row_number)` position.
+
+- **Idempotent batch ingestion.**  
+  - Batch identity = content hash of the Parquet file (1 MiB chunks)  
+  - Read ≤5,000 rows per batch; one DB transaction per batch  
+  - Raw rows use conflict-safe insert on `(batch, source_row_number)`  
+  - Normalized facts use the unique constraint above  
+  - Rerun reuses the same batch, keeps original raw rows, and reports normalized rows as skipped  
+  - Parse failures (null/non-positive rates, etc.) are stored as `failed` raw records with an error message  
+  - Unrecoverable source/DB errors mark the batch failed and fail the command  
+
+- **Observed full-file seed result.**  
+  | Run | Raw rows | Normalized created | Skipped | Parse failures |
+  | --- | ---: | ---: | ---: | ---: |
+  | First seed | 1,005,000 | 999,096 | 5,689 | 215 |
+  | Immediate repeat | 0 new | 0 | 1,004,785 valid | same 215 retained |
+
+- **HTTP adapter behavior.**  
+  Explicit timeout; request/status/JSON failures surface as source errors; partial responses still accept the available `records` list so malformed rows can be retained for replay.
+
+## API, cache, and product semantics
+
+- **`GET /rates/latest`.**  
+  - No `type`: one latest record per provider across all rate types  
+  - With `?type=`: filter by validated type first, then one latest per provider  
+  - “Latest” order: `effective_date` → ingestion timestamp → id (all descending)  
+  - Response includes the selected record’s rate type  
+
+- **Cache.**  
+  - TTL 60s under `rates:latest:all` or `rates:latest:type:<type>`  
+  - `type` is normalized/validated before use as a cache key (1–64 chars; letters, numbers, spaces, `_`, `-`; blank rejected)  
+  - Successful webhook insert invalidates the all-types key and that record’s type key  
+  - Successful Parquet ingestion that creates normalized rows invalidates the all-types key and every rate type present in the batch  
+
+- **History and options.**  
+  - History: default page size 50; requires provider and type  
+  - `GET /rates/options`: distinct provider/type pairs for dashboard selectors (not limited to the one-latest-per-provider table)  
+
+
 
 ## Architecture and operations
 
-- **Backend and persistence:** Django with Django REST Framework and PostgreSQL.
-- **Latest-rate semantics and caching:** without a type filter, `GET /rates/latest` returns one latest record per provider across all rate types. With `?type=`, it filters by the validated type first and returns one latest record per provider for that type. “Latest” is ordered by effective date, then ingestion timestamp, then record ID, all descending; the response includes the selected record's rate type. Redis caches the response under `rates:latest:all` / `rates:latest:type:<type>`; successful webhook and Parquet ingestion invalidate the all-types key and affected type keys.
-- **Dashboard refresh and selectors:** the Next.js dashboard polls every 60 seconds and refetches both `/rates/latest` and the selected 30-day history without a full page reload. Provider/type dropdowns are backed by `/rates/options` combinations, and changing provider clamps rate type to a valid pair for that provider.
-- **Scheduling:** Celery worker plus Celery Beat will schedule ingestion locally through Docker Compose. This satisfies the local scheduling requirement without relying on host-machine cron.
-- **Migration ownership and readiness:** only the API container runs `migrate`, after actively checking PostgreSQL and Redis. It repeats `migrate` on each API start because Django migrations are idempotent; worker, Beat, and web are held until the API health endpoint proves both dependencies are usable.
-- **Parquet processing:** PyArrow will read the file in record batches, rather than loading the full dataset into Python memory.
-- **Observability is a time-permitting bonus.** After required scope is working, add structured JSON logging for API and worker paths, including ingestion start/end/error and slow-query warnings. Do not use `print()` in production paths.
+- **Stack.**  
+  Django + Django REST Framework + PostgreSQL; Redis for cache and Celery; Next.js dashboard; PyArrow for batched Parquet reads (not full-file load into memory).
 
-## Future improvement
+- **Scheduling.**  
+  Celery worker + Celery Beat run ingestion hourly inside Compose (no host cron).  
+  Overlap control: Redis `SET NX` lock, UUID token, 90-minute lease, renew every 5 minutes while owned, release via compare-and-delete Lua script. If the lock is held, the task returns `skipped_overlap`.
 
-- **Provider registry and durable run leases:** with more time, replace case-folded display labels with a provider registry of official names and aliases, and replace the owned Redis lease with durable job leases plus heartbeat observability. This would improve presentation accuracy and recovery when a worker fails mid-run.
+- **Startup and migrations.**  
+  Only the API container runs `migrate`, after checking PostgreSQL and Redis. Migrations re-run on each API start (idempotent). Worker, Beat, and web wait until the API health endpoint reports dependencies ready.
+
+- **Dashboard behavior.**  
+  Polls every 60 seconds; refetches `/rates/latest` and the selected 30-day history without a full page reload. Provider/type dropdowns use `/rates/options`; changing provider clamps rate type to a valid pair.
+
+- **Observability (time-boxed).**  
+  Structured JSON logging was deferred after required scope. API and worker use standard application logging; `print()` is avoided on production paths.
+
+## Known tradeoffs / follow-ups
+
+- **Redis lease vs durable job orchestration.**  
+  The 48-hour assessment window favors an owned Redis lease over a full job-runner. With more time: durable run/lease + heartbeat recovery for mid-run worker failure.
+
+- **Case-folded provider labels vs registry.**  
+  Display names are case-folded for identity. With more time: a provider registry of official names and aliases for cleaner presentation.
