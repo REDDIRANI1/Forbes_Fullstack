@@ -36,6 +36,8 @@ services:
     command: /app/scripts/api-start.sh
     ports:
       - "8000:8000"
+    volumes:
+      - ./forbes_docs:/data:ro
     depends_on:
       db:
         condition: service_healthy
