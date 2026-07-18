@@ -42,8 +42,9 @@ export default function Home() {
   useEffect(() => {
     if (!provider || !rateType) return;
     let alive = true;
-    setHistoryState("Loading 30-day history");
     const load = async () => {
+      await Promise.resolve();
+      if (alive) setHistoryState("Loading 30-day history");
       try {
         const latestByType: Rate[] = await fetch(`${api}/rates/latest?type=${encodeURIComponent(rateType)}`).then((result) => result.ok ? result.json() : Promise.reject());
         const latest = latestByType.find((rate) => rate.provider_name === provider);
@@ -76,7 +77,7 @@ export default function Home() {
 
   return <main>
     <header><p className="eyebrow">Forbes Advisor assessment</p><h1>Rate tracker</h1><p>Live provider comparison, refreshed every minute.</p></header>
-    <section className="table"><div className="section-head"><h2>Latest rate by provider</h2><div><button onClick={() => setSortField("rate_value")}>Sort by value {sort === "rate_value" && (descending ? "down" : "up")}</button><button onClick={() => setSortField("effective_date")}>Sort by update {sort === "effective_date" && (descending ? "down" : "up")}</button></div></div>{latestState ? <p className="state">{latestState}</p> : <div className="scroll"><table><thead><tr><th>Provider</th><th>Type</th><th>Rate</th><th>Updated</th></tr></thead><tbody>{ordered.map((rate) => <tr key={rate.id} onClick={() => { setProvider(rate.provider_name); setRateType(rate.rate_type); }} className={provider === rate.provider_name && rateType === rate.rate_type ? "selected" : ""}><td>{rate.provider_name}</td><td>{displayType(rate.rate_type)}</td><td>{rate.rate_value}%</td><td>{rate.effective_date}</td></tr>)}</tbody></table></div>}</section>
+    <section className="table"><div className="section-head"><h2>Latest rate by provider</h2><div><button onClick={() => setSortField("rate_value")}>Sort by value {sort === "rate_value" && (descending ? "▼" : "▲")}</button><button onClick={() => setSortField("effective_date")}>Sort by update {sort === "effective_date" && (descending ? "▼" : "▲")}</button></div></div>{latestState ? <p className="state">{latestState}</p> : <div className="scroll"><table><thead><tr><th>Provider</th><th>Type</th><th className="rate-value">Rate</th><th>Updated</th></tr></thead><tbody>{ordered.map((rate) => <tr key={rate.id} onClick={() => { setProvider(rate.provider_name); setRateType(rate.rate_type); }} className={provider === rate.provider_name && rateType === rate.rate_type ? "selected" : ""}><td>{rate.provider_name}</td><td>{displayType(rate.rate_type)}</td><td className="rate-value">{rate.rate_value}%</td><td>{rate.effective_date}</td></tr>)}</tbody></table></div>}</section>
     <section className="chart"><div><p className="eyebrow">30-day movement</p><h2>Compare a provider and rate type</h2></div><div className="selectors"><label>Provider<select value={provider} onChange={(event) => setProvider(event.target.value)}>{providers.map((value) => <option key={value}>{value}</option>)}</select></label><label>Rate type<select value={rateType} onChange={(event) => setRateType(event.target.value)}>{rateTypes.map((value) => <option key={value} value={value}>{displayType(value)}</option>)}</select></label></div>{historyState ? <p className="state">{historyState}</p> : <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label={`${provider} ${rateType} rate history line chart`}><polyline points={points} /></svg>}</section>
   </main>;
 }

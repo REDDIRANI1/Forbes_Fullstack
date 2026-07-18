@@ -1,1 +1,202 @@
-:root{color:#14261f;background:#f1f0e8;font-family:Arial,sans-serif}*{box-sizing:border-box}body{margin:0}main{max-width:1120px;margin:auto;padding:52px 24px}header{border-bottom:1px solid #b9c1b4;padding-bottom:28px}.eyebrow{text-transform:uppercase;letter-spacing:.12em;font-size:12px;color:#51735e}h1{font-family:Georgia,serif;font-size:clamp(42px,8vw,82px);margin:6px 0}h2{margin:0;font-size:20px}.table,.chart{margin-top:32px;background:#fbfaf5;padding:24px;border:1px solid #cfd6cc}.section-head,.selectors{display:flex;justify-content:space-between;gap:16px;align-items:center}.selectors{justify-content:flex-start;margin-top:20px}label{display:grid;gap:6px;font-size:13px;font-weight:bold}select,button{background:transparent;border:1px solid #78907d;padding:9px;color:#14261f;cursor:pointer}button{margin-left:8px}select{min-width:190px}button:focus,select:focus,tr:focus{outline:3px solid #c96d42;outline-offset:2px}.scroll{overflow:auto}table{width:100%;border-collapse:collapse;margin-top:18px;min-width:620px}th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.08em}td,th{padding:15px 8px;border-bottom:1px solid #dde2d8}tbody tr{cursor:pointer}tbody tr:hover,.selected{background:#e7efe6}.state{padding:30px 0;color:#526057}svg{width:100%;height:250px;margin-top:18px;background:linear-gradient(#eef3eb 1px,transparent 1px);background-size:100% 25%;overflow:visible}polyline{fill:none;stroke:#c96d42;stroke-width:2;vector-effect:non-scaling-stroke}@media(max-width:600px){main{padding:28px 14px}.section-head,.selectors{align-items:flex-start;flex-direction:column}button{margin:8px 8px 0 0}.table,.chart{padding:16px}h1{font-size:52px}select{min-width:100%}}
+/* ── Tokens ─────────────────────────────────────────── */
+
+:root {
+  color: #14261f;
+  background: #f1f0e8;
+  font-family: Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+/* ── Layout ─────────────────────────────────────────── */
+
+main {
+  max-width: 1120px;
+  margin: auto;
+  padding: 52px 24px;
+}
+
+header {
+  border-bottom: 1px solid #b9c1b4;
+  padding-bottom: 28px;
+}
+
+/* ── Typography ─────────────────────────────────────── */
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 12px;
+  color: #51735e;
+}
+
+h1 {
+  font-family: Georgia, serif;
+  font-size: clamp(42px, 8vw, 82px);
+  margin: 6px 0;
+}
+
+h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+/* ── Sections ───────────────────────────────────────── */
+
+.table,
+.chart {
+  margin-top: 32px;
+  background: #fbfaf5;
+  padding: 24px;
+  border: 1px solid #cfd6cc;
+}
+
+.section-head,
+.selectors {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+}
+
+.selectors {
+  justify-content: flex-start;
+  margin-top: 20px;
+}
+
+/* ── Controls ───────────────────────────────────────── */
+
+label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+select,
+button {
+  background: transparent;
+  border: 1px solid #78907d;
+  padding: 9px;
+  color: #14261f;
+  cursor: pointer;
+}
+
+button {
+  margin-left: 8px;
+}
+
+select {
+  min-width: 190px;
+}
+
+button:focus,
+select:focus,
+tr:focus {
+  outline: 3px solid #c96d42;
+  outline-offset: 2px;
+}
+
+/* ── Table ──────────────────────────────────────────── */
+
+.scroll {
+  overflow: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 18px;
+  min-width: 620px;
+}
+
+th {
+  text-align: left;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+td,
+th {
+  padding: 15px 8px;
+  border-bottom: 1px solid #dde2d8;
+}
+
+/* Right-align the rate-value column for numeric readability */
+td.rate-value,
+th.rate-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+tbody tr {
+  cursor: pointer;
+}
+
+tbody tr:hover,
+.selected {
+  background: #e7efe6;
+}
+
+/* ── Status messages ────────────────────────────────── */
+
+.state {
+  padding: 30px 0;
+  color: #526057;
+}
+
+/* ── Chart ──────────────────────────────────────────── */
+
+svg {
+  width: 100%;
+  height: 250px;
+  margin-top: 18px;
+  background: linear-gradient(#eef3eb 1px, transparent 1px);
+  background-size: 100% 25%;
+  overflow: visible;
+}
+
+polyline {
+  fill: none;
+  stroke: #c96d42;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+/* ── Responsive ─────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  main {
+    padding: 28px 14px;
+  }
+
+  .section-head,
+  .selectors {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  button {
+    margin: 8px 8px 0 0;
+  }
+
+  .table,
+  .chart {
+    padding: 16px;
+  }
+
+  h1 {
+    font-size: 52px;
+  }
+
+  select {
+    min-width: 100%;
+  }
+}
