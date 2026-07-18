@@ -8,6 +8,12 @@ AGENTS.md
 
 # Local/editor metadata
 .DS_Store
+.env
+__pycache__/
+*.pyc
+backend/.pytest_cache/
+web/node_modules/
+web/.next/
 
 # Assignment reference documents are not submission deliverables.
 # Keep the supplied seed data available because seed_data must ingest it.
