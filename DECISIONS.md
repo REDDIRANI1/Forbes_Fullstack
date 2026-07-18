@@ -76,4 +76,4 @@ Also with more time: a provider registry (official names + aliases) and durable 
 - **`POST /rates/ingest`** — bearer token; strict validation; structured errors; cache invalidation on success.
 - **Stack** — Django + DRF + PostgreSQL; Redis cache/broker; Celery worker + Beat; Next.js; PyArrow batches.
 - **Startup** — only API runs `migrate` after PostgreSQL/Redis checks; worker/Beat/web wait on API health.
-- **Dashboard** — real API only; comparison table; 30-day chart; 60s refresh without full reload; loading/error states; responsive layout.
+- **Dashboard** — real API only; comparison table; 30-day chart; 60s refresh without full reload; loading/error states; responsive layout. On first load (empty selection), the UI prefers a seed pair known to have a multi-point 30-day window (`bank of america` / `savings_easy_access`, then similar savings pairs) so reviewers see a real line chart without hunting; user selections still win afterward.
