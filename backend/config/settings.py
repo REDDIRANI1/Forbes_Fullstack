@@ -31,11 +31,13 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "corsheaders",
     "rates",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -67,3 +69,4 @@ REST_FRAMEWORK["PAGE_SIZE"] = 50
 CELERY_BROKER_URL = REDIS_URL
 CELERY_RESULT_BACKEND = REDIS_URL
 CELERY_BEAT_SCHEDULE = {"seed-rates-hourly": {"task": "rates.tasks.scheduled_seed_data", "schedule": 3600.0}}
+CORS_ALLOWED_ORIGINS = ["http://localhost:3000"]
