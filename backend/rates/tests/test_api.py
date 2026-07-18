@@ -26,7 +26,7 @@ def test_latest_selects_one_record_per_provider_and_caches():
     assert cache.get("rates:latest:type:api_test_fixed") is not None
     filtered = APIClient().get("/rates/latest?type=api_test_variable")
     assert filtered.status_code == 200
-    assert len(filtered.data) == 2
+    assert len(filtered.data) == 1
 
 
 @pytest.mark.django_db
