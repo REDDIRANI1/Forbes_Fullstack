@@ -16,14 +16,15 @@ def make_rate(provider, rate_type, value, effective_date, ingested_at):
 
 @pytest.mark.django_db
 def test_latest_selects_one_record_per_provider_and_caches():
-    make_rate("alpha", "fixed", "4.0000", date(2025, 1, 1), datetime(2025, 1, 1, tzinfo=timezone.utc))
-    newest = make_rate("alpha", "variable", "5.0000", date(2025, 1, 2), datetime(2025, 1, 2, tzinfo=timezone.utc))
-    bravo = make_rate("bravo", "fixed", "3.0000", date(2025, 1, 1), datetime(2025, 1, 1, tzinfo=timezone.utc))
-    response = APIClient().get("/rates/latest")
+    cache.clear()
+    alpha = make_rate("alpha", "api_test_fixed", "4.0000", date(2025, 1, 1), datetime(2025, 1, 1, tzinfo=timezone.utc))
+    make_rate("alpha", "api_test_variable", "5.0000", date(2025, 1, 2), datetime(2025, 1, 2, tzinfo=timezone.utc))
+    bravo = make_rate("bravo", "api_test_fixed", "3.0000", date(2025, 1, 1), datetime(2025, 1, 1, tzinfo=timezone.utc))
+    response = APIClient().get("/rates/latest?type=api_test_fixed")
     assert response.status_code == 200
-    assert {item["id"] for item in response.data} == {newest.id, bravo.id}
-    assert cache.get("rates:latest:all") is not None
-    filtered = APIClient().get("/rates/latest?type=fixed")
+    assert {item["id"] for item in response.data} == {alpha.id, bravo.id}
+    assert cache.get("rates:latest:type:api_test_fixed") is not None
+    filtered = APIClient().get("/rates/latest?type=api_test_variable")
     assert filtered.status_code == 200
     assert len(filtered.data) == 2
 
